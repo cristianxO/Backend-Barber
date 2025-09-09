@@ -21,6 +21,10 @@ public class Plan {
     @Column(nullable = false)
     private String description;
 
+    //Duración en minutos
+    @NotNull
+    private int duration;
+
     @NotNull
     @Column(nullable = false)
     private double price;
@@ -33,7 +37,7 @@ public class Plan {
             joinColumns = @JoinColumn(name = "plan_id"),
             inverseJoinColumns = @JoinColumn(name = "service_id")
     )
-    private List<Service> services;
+    private List<ServiceModel> services;
 
     @OneToMany(mappedBy = "plan")
     private List<Appointment> appointments;

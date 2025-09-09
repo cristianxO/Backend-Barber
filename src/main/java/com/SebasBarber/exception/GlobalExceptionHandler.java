@@ -17,4 +17,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleUserNotFoundException(UserNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
+
+    @ExceptionHandler(InvalidAppointmentDateException.class)
+    public ResponseEntity<String> handleInvalidAppointmentDateException(InvalidAppointmentDateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(DateIsNotAvailableException.class)
+    public ResponseEntity<String> handleDateIsNotAvailable(DateIsNotAvailableException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(AppointmentGapNotAllowedException.class)
+    public ResponseEntity<String> handleAppointmentGapNotAllowedException(AppointmentGapNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(ServiceException.class)
+    public ResponseEntity<String> handleServiceException(ServiceException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
 }

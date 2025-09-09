@@ -34,6 +34,11 @@ public class Appointment {
 
     private double total;
 
+    private int duration;
+
+    private int slots;
+
+    @NotNull
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
@@ -44,7 +49,7 @@ public class Appointment {
             joinColumns = @JoinColumn(name = "appointment_id"),
             inverseJoinColumns = @JoinColumn(name = "service_id")
     )
-    private List<Service> services;
+    private List<ServiceModel> services;
 
     @ManyToOne
     @JoinColumn(name = "plan_id")
