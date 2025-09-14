@@ -37,4 +37,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleServiceException(ServiceException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
+
+    @ExceptionHandler(AppointmentNotFoundException.class)
+    public ResponseEntity<String> handleAppointmentNotFoundException(AppointmentNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(ServiceNotFoundException.class)
+    public ResponseEntity<String> handleServiceNotFoundException(ServiceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(PlanNotFoundException.class)
+    public ResponseEntity<String> handlePlanNotFoundException(PlanNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
 }

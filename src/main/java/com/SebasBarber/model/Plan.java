@@ -29,7 +29,7 @@ public class Plan {
     @Column(nullable = false)
     private double price;
 
-    private boolean isActive;
+    private Boolean isActive;
 
     @ManyToMany
     @JoinTable(

@@ -31,7 +31,8 @@ public class ServiceModel {
     @Column(nullable = false)
     private double price;
 
-    private boolean isActive;
+    @Column(nullable = false)
+    private Boolean isActive;
 
     @ManyToMany(mappedBy = "services")
     private List<Appointment> appointments;

@@ -3,6 +3,7 @@ package com.SebasBarber.SebasBarber_backend;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -12,8 +13,7 @@ public class SebasBarberBackendApplication {
 	public static void main(String[] args) {
 		//SpringApplication.run(SebasBarberBackendApplication.class, args);
 
-		LocalTime hour = LocalTime.of(18,0);
-		System.out.println(hour.plusMinutes(100));
+		System.out.println(LocalDate.now().lengthOfMonth());
 	}
 
 }

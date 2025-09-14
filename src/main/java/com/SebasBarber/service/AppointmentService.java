@@ -1,12 +1,16 @@
 package com.SebasBarber.service;
 
+import com.SebasBarber.DTO.AppointmentDTO;
+import com.SebasBarber.DTO.UtilDTO;
 import com.SebasBarber.exception.*;
 import com.SebasBarber.model.*;
 import com.SebasBarber.repository.AppointmentRepository;
 import com.SebasBarber.repository.UserRepository;
+import com.SebasBarber.repository.VipAppointmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -17,6 +21,12 @@ public class AppointmentService {
 
     @Autowired
     AppointmentRepository appointmentRepository;
+
+    @Autowired
+    VipAppointmentRepository vipAppointmentRepository;
+
+    @Autowired
+    UtilDTO utilDTO;
 
     @Autowired
     UserRepository userRepository;
@@ -53,17 +63,20 @@ public class AppointmentService {
         Optional<User> existingUser = userRepository.findByPhoneNumber(appointment.getUser().getPhoneNumber());
         if (!existingUser.isEmpty()) {
             if (isDateInThePast(appointment.getDate(),appointment.getHour())) {
-                if (isPlanAndServiceNull(appointment.getPlan(),appointment.getServices())) {
-                    appointment.setDuration(calculateAppointmentDuration(appointment));
-                    appointment.setSlots(appointment.getDuration()/30);
-                    if (isDateAvailable(appointment)) {
-                        appointment.setStatus(AppointmentStatus.RESERVADA);
-                        appointment.setTotal(calculateTotal(appointment.getPlan(),appointment.getServices()));
-                        appointmentRepository.save(appointment);
-                    }else
+                if (validateBusinessHours(appointment.getDate(), appointment.getHour())) {
+                    if (isPlanAndServiceNotNull(appointment.getPlan(),appointment.getServices())) {
+                        appointment.setDuration(calculateAppointmentDuration(appointment));
+                        appointment.setSlots(appointment.getDuration()/30);
+                        if (isDateAvailable(appointment)) {
+                            appointment.setStatus(AppointmentStatus.RESERVADA);
+                            appointment.setTotal(calculateTotal(appointment.getPlan(),appointment.getServices()));
+                            appointmentRepository.save(appointment);
+                        }
                         throw new DateIsNotAvailableException();
+                    }
+                    throw new ServiceException();
                 }
-                throw new ServiceException();
+                throw new InvalidAppointmentDateException();
             }
             throw new InvalidAppointmentDateException();
         }
@@ -82,7 +95,7 @@ public class AppointmentService {
         return false;
     }
 
-    private boolean isPlanAndServiceNull(Plan plan, List<ServiceModel> services) {
+    private boolean isPlanAndServiceNotNull(Plan plan, List<ServiceModel> services) {
         if (plan == null) {
             if (services == null) {
                 return false;
@@ -94,11 +107,47 @@ public class AppointmentService {
         return true;
     }
 
+    private boolean validateBusinessHours(LocalDate date, LocalTime time) {
+        if (date.getDayOfWeek().equals(DayOfWeek.SUNDAY)) {
+            return false;
+        }
+        int hour = time.getHour();
+        if (hour >= 7 && hour <= 12) {
+            if (hour == 12 && time.getMinute() == 0) {
+                return true;
+            }else if (hour == 12) {
+                return false;
+            }
+            return true;
+        }
+        if (hour >=14 && hour <= 21) {
+            if (hour == 21 && time.getMinute() == 0) {
+                return true;
+            }else if (hour == 21) {
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
     private boolean isDateAvailable(Appointment appointment) {
         List<Appointment> appointments = appointmentRepository.findByDateOrderByHourAsc(appointment.getDate());
+        List<VipAppointment> vipAppointments = vipAppointmentRepository.findByIsActiveTrueAndDate(appointment.getDate().getDayOfMonth());
+        vipAppointments.addAll(vipAppointmentRepository.findByIsActiveTrueAndDayOfWeek(appointment.getDate().getDayOfWeek()));
+        if (appointment.getDate().lengthOfMonth() == appointment.getDate().getDayOfMonth()) {
+            vipAppointments.addAll(vipAppointmentRepository.findByIsActiveTrueAndIsEndOfMonthTrue());
+        }
         boolean[] occupied = new boolean[24];
-        //Mapea todas las citas del dia en un arreglo
+        //Mapea todas las citas normales del dia en un arreglo
         for (Appointment aux: appointments) {
+            int slot = calculateSlots(aux.getHour());
+            for (int i = 0; i < aux.getSlots(); i++) {
+                occupied[slot + i] = true;
+            }
+        }
+        //Mapea todas las citas vip del dia en un arreglo
+        for (VipAppointment aux: vipAppointments) {
             int slot = calculateSlots(aux.getHour());
             for (int i = 0; i < aux.getSlots(); i++) {
                 occupied[slot + i] = true;
@@ -177,5 +226,54 @@ public class AppointmentService {
             totalMinutes += (30 - remainder);
         }
         return totalMinutes;
+    }
+
+    public List<AppointmentDTO> getAppointmentsForToday() {
+        LocalDate date = LocalDate.now();
+        //Citas normales
+        List<AppointmentDTO> appointments = appointmentRepository.findByDateOrderByHourAsc(date)
+                .stream().map(appointment -> utilDTO.mapAppointmentToAppointmentDTO(appointment)).toList();
+        //Citas VIP activas por fecha
+        appointments.addAll(vipAppointmentRepository.findByIsActiveTrueAndDate(date.getDayOfMonth())
+                .stream().map(vipAppointment -> utilDTO.mapVipAppointmentToAppointmentDTO(vipAppointment)).toList());
+        //Citas VIP activas por dia de la semana
+        appointments.addAll(vipAppointmentRepository.findByIsActiveTrueAndDayOfWeek(date.getDayOfWeek())
+                .stream().map(vipAppointment -> utilDTO.mapVipAppointmentToAppointmentDTO(vipAppointment)).toList());
+        if (date.lengthOfMonth() == date.getDayOfMonth()) {
+            //Citas VIP activas de fin de mes
+            appointments.addAll(vipAppointmentRepository.findByIsActiveTrueAndIsEndOfMonthTrue()
+                    .stream().map(vipAppointment -> utilDTO.mapVipAppointmentToAppointmentDTO(vipAppointment)).toList());
+        }
+        return appointments;
+    }
+
+    public List<AppointmentDTO> getAppointmentsByDate(LocalDate date) {
+        //Citas normales
+        List<AppointmentDTO> appointments = appointmentRepository.findByDateOrderByHourAsc(date)
+                .stream().map(appointment -> utilDTO.mapAppointmentToAppointmentDTO(appointment)).toList();
+        //Citas VIP activas por fecha
+        appointments.addAll(vipAppointmentRepository.findByIsActiveTrueAndDate(date.getDayOfMonth())
+                .stream().map(vipAppointment -> utilDTO.mapVipAppointmentToAppointmentDTO(vipAppointment)).toList());
+        //Citas VIP activas por dia de la semana
+        appointments.addAll(vipAppointmentRepository.findByIsActiveTrueAndDayOfWeek(date.getDayOfWeek())
+                .stream().map(vipAppointment -> utilDTO.mapVipAppointmentToAppointmentDTO(vipAppointment)).toList());
+        if (date.lengthOfMonth() == date.getDayOfMonth()) {
+            //Citas VIP activas de fin de mes
+            appointments.addAll(vipAppointmentRepository.findByIsActiveTrueAndIsEndOfMonthTrue()
+                    .stream().map(vipAppointment -> utilDTO.mapVipAppointmentToAppointmentDTO(vipAppointment)).toList());
+        }
+        return appointments;
+    }
+
+    public void deleteAppointment(String phone, LocalDate date) {
+        Optional<User> existingUser = userRepository.findByPhoneNumber(phone);
+        if (!existingUser.isEmpty()) {
+            Optional<Appointment> existingAppointment = appointmentRepository.findByUserAndDate(existingUser.get(),date);
+            if (!existingAppointment.isEmpty()) {
+                appointmentRepository.delete(existingAppointment.get());
+            }
+            throw new AppointmentNotFoundException();
+        }
+        throw new UserNotFoundException();
     }
 }

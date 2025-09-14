@@ -36,13 +36,13 @@ public class UserController {
     }
 
     @GetMapping
-    public List<Optional<UserDTO>> getUsers() {
+    public List<UserDTO> getUsers() {
         return userService.getUsers();
     }
 
     @DeleteMapping("/{phone}")
     public ResponseEntity<Void> deleteUser(@PathVariable String phone) {
         userService.deleteUser(phone);
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return ResponseEntity.noContent().build();
     }
 }

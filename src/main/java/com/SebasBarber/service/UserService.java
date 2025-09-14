@@ -37,7 +37,7 @@ public class UserService {
     public Optional<UserDTO> getUser(String phone) {
         Optional<User> existingUser = userRepository.findByPhoneNumber(phone);
         if (!existingUser.isEmpty()) {
-            return utilDTO.mapUserToUserDTO(existingUser.get());
+            return Optional.of(utilDTO.mapUserToUserDTO(existingUser.get()));
         }
         throw new UserNotFoundException();
     }
@@ -53,7 +53,7 @@ public class UserService {
         throw new UserNotFoundException();
     }
 
-    public List<Optional<UserDTO>> getUsers() {
+    public List<UserDTO> getUsers() {
         return userRepository.findAll().stream()
                 .map(user -> utilDTO.mapUserToUserDTO(user))
                 .toList();

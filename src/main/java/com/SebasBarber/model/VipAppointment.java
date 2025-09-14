@@ -1,6 +1,8 @@
 package com.SebasBarber.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -23,14 +25,19 @@ public class VipAppointment {
     @Column(name = "day_of_week", length = 10)
     private DayOfWeek dayOfWeek;
 
+    @Min(1) @Max(28)
     @Column(name = "day_of_month")
-    private int dayOfMonth;
+    private Integer dayOfMonth;
+
+    private boolean isEndOfMonth;
 
     @NotNull
     @Column(nullable = false)
-    private LocalTime time;
+    private LocalTime hour;
 
-    private boolean isActive;
+    private Boolean isActive;
+
+    private int slots;
 
     @OneToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
